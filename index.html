@@ -16,7 +16,7 @@
     h1{margin:0;font-size:clamp(2rem,3.25vw,4rem);font-weight:500;line-height:1.03;letter-spacing:.04em;text-align:center;text-shadow:0 0 22px rgba(185,124,255,.7)}h1 span{display:block;white-space:nowrap}h1 .wheel-line{margin-top:.08em;font-size:.86em}
     .tag{margin:7px 0 20px;color:var(--pale);font-size:clamp(.85rem,1.2vw,1.1rem);letter-spacing:.28em;text-transform:uppercase}
     .wheel-wrap{position:relative;width:min(590px,72vh,39vw);aspect-ratio:1;margin:auto;filter:drop-shadow(0 0 28px rgba(179,95,236,.55))}
-    #wheel{width:100%;height:100%;border-radius:50%;border:8px solid #c99aff;background:#110b17;transition:transform 5.4s cubic-bezier(.08,.72,.11,1);box-shadow:inset 0 0 45px #000,0 0 0 3px rgba(244,222,255,.42)}
+    #wheel{width:100%;height:100%;border-radius:50%;border:8px solid #c99aff;background:#110b17;transition:transform 8s cubic-bezier(.08,.72,.11,1);box-shadow:inset 0 0 45px #000,0 0 0 3px rgba(244,222,255,.42)}
     .pointer{position:absolute;z-index:4;top:-8px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:22px solid transparent;border-right:22px solid transparent;border-top:50px solid #f4e7ff;filter:drop-shadow(0 0 8px #b66aff)}
     .hub{position:absolute;z-index:3;inset:40%;display:grid;place-items:center;border-radius:50%;border:3px solid #e5caff;background:radial-gradient(circle at 35% 25%,#a35ed0,#21102c 70%);box-shadow:0 0 24px #b462e6;color:#fff;font-size:clamp(1rem,2vw,1.7rem);text-shadow:0 0 8px #fff}
     .controls{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:22px}
@@ -53,14 +53,14 @@
   <dialog id="popup"><h2>You won! ♡</h2><div class="win" id="won"></div><p id="note">Screenshot this result to claim your prize.</p><button id="close">Close</button></dialog>
   <script>
     const prizes=[
-      {title:['Voice','Recording'],sub:'20 seconds',icon:'🎙️',weight:5},
-      {title:['Mini','Game'],sub:'15 minutes',icon:'🎮',weight:19},
-      {title:['Mini','Watch'],sub:'15 minutes',icon:'🎬',weight:19},
-      {title:['10%','Off'],sub:'Any service',icon:'♡',weight:6},
-      {title:['Any','Service'],sub:'30 minutes',icon:'♛',weight:7},
-      {title:['Mini','Chat'],sub:'15 minutes',icon:'💬',weight:19},
-      {title:['20%','Coupon'],sub:'',icon:'✦',weight:19},
-      {title:['Another','Spin'],sub:'',icon:'↻',weight:19,respin:true}
+      {title:['Voice','Recording'],sub:'20 seconds',icon:'🎙️',weight:6},
+      {title:['Mini','Game'],sub:'15 minutes',icon:'🎮',weight:16},
+      {title:['Mini','Watch'],sub:'15 minutes',icon:'🎬',weight:16},
+      {title:['10%','Off'],sub:'Any service',icon:'♡',weight:16},
+      {title:['Any','Service'],sub:'30 minutes',icon:'♛',weight:4},
+      {title:['Mini','Chat'],sub:'15 minutes',icon:'💬',weight:16},
+      {title:['20%','Coupon'],sub:'',icon:'✦',weight:10},
+      {title:['Another','Spin'],sub:'',icon:'↻',weight:16,respin:true}
     ];
     const colors=['#23132f','#724190','#160d20','#9b66ba','#2e183d','#674078','#1b1024','#8756a4'];
     const canvas=document.querySelector('#wheel'),ctx=canvas.getContext('2d'),spinBtn=document.querySelector('#spin'),doubleBtn=document.querySelector('#double'),statusEl=document.querySelector('#status'),historyEl=document.querySelector('#history'),popup=document.querySelector('#popup'),won=document.querySelector('#won'),note=document.querySelector('#note');
@@ -70,7 +70,7 @@
     function tone(freq,dur=.08,vol=.035){try{audioCtx??=new(window.AudioContext||window.webkitAudioContext)();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=freq;o.type='triangle';g.gain.setValueAtTime(vol,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+dur);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+dur)}catch(e){}}
     function record(label){const arr=JSON.parse(localStorage.getItem('teeWheelHistory')||'[]');arr.unshift(`${new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})} — ${label}`);localStorage.setItem('teeWheelHistory',JSON.stringify(arr.slice(0,8)));showHistory()}
     function showHistory(){historyEl.innerHTML=(JSON.parse(localStorage.getItem('teeWheelHistory')||'[]')).map(x=>`<div>${x}</div>`).join('')}
-    function run(isDouble=false){if(spinning)return;spinning=true;spinBtn.disabled=doubleBtn.disabled=true;statusEl.textContent='The wheel is choosing... ♡';const winner=choose(),slice=360/prizes.length,target=(360-(winner+.5)*slice)%360,current=((rotation%360)+360)%360,adjust=(target-current+360)%360;rotation+=2160+adjust;canvas.style.transform=`rotate(${rotation}deg)`;tone(430,.2,.025);setTimeout(()=>{const p=prizes[winner],label=`${p.title.join(' ')}${p.sub?' — '+p.sub:''}${isDouble&&!p.respin?' ×2':''}`;lastWasRespin=!!p.respin;won.textContent=label;note.textContent=p.respin?'You landed on Another Spin. Spin again!':'Screenshot this result to claim your prize.';statusEl.textContent=`You won: ${label} ♡`;record(label);tone(p.respin?540:820,.35,.04);popup.showModal();spinning=false;spinBtn.disabled=doubleBtn.disabled=false},5500)}
+    function run(isDouble=false){if(spinning)return;spinning=true;spinBtn.disabled=doubleBtn.disabled=true;statusEl.textContent='The wheel is choosing... ♡';const winner=choose(),slice=360/prizes.length,target=(360-(winner+.5)*slice)%360,current=((rotation%360)+360)%360,adjust=(target-current+360)%360;rotation+=2160+adjust;canvas.style.transform=`rotate(${rotation}deg)`;tone(430,.2,.025);setTimeout(()=>{const p=prizes[winner],label=`${p.title.join(' ')}${p.sub?' — '+p.sub:''}${isDouble&&!p.respin?' ×2':''}`;lastWasRespin=!!p.respin;won.textContent=label;note.textContent=p.respin?'You landed on Another Spin. Spin again!':'Screenshot this result to claim your prize.';statusEl.textContent=`You won: ${label} ♡`;record(label);tone(p.respin?540:820,.35,.04);popup.showModal();spinning=false;spinBtn.disabled=doubleBtn.disabled=false},8050)}
     spinBtn.onclick=()=>run(false);doubleBtn.onclick=()=>run(true);document.querySelector('#close').onclick=()=>popup.close();document.querySelector('#reset').onclick=()=>{if(spinning)return;rotation=0;lastWasRespin=false;canvas.style.transform='rotate(0deg)';localStorage.removeItem('teeWheelHistory');showHistory();statusEl.textContent='Every spin is a winner ♡'};
     function addFlowers(){const layer=document.querySelector('#flowers');for(let i=0;i<10;i++){const sparkle=document.createElement('span');sparkle.className='falling-sparkle';sparkle.textContent='✦';sparkle.style.left=Math.random()*100+'vw';sparkle.style.fontSize=10+Math.random()*12+'px';sparkle.style.animationDuration=9+Math.random()*10+'s';sparkle.style.animationDelay=-Math.random()*18+'s';sparkle.style.setProperty('--drift',(Math.random()*110-55)+'px');layer.appendChild(sparkle)}}
     function addCustomCursor(){if(!matchMedia('(pointer:fine)').matches)return;const sparkle=document.querySelector('#customCursor');document.addEventListener('mousemove',e=>{sparkle.style.left=e.clientX+'px';sparkle.style.top=e.clientY+'px'})}
