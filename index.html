@@ -43,7 +43,7 @@
       <div class="price-side"><h3>✦ Regular Spins</h3><div class="price-row"><span class="coin">✦</span><span class="num">5</span><span class="price-label">1 Spin</span></div><div class="price-row"><span class="coin">✦</span><span class="num">12</span><span class="price-label">3 Spins</span></div></div>
       <div class="price-side"><h3>♛ VIP Spins</h3><div class="price-row"><span class="coin">✦</span><span class="num">9</span><span class="price-label">1 VIP Spin</span></div><div class="price-row"><span class="coin">✦</span><span class="num">21</span><span class="price-label">3 VIP Spins</span></div></div>
     </div>
-    <div class="card"><h2>How it works</h2><ul class="rules"><li>Every spin wins a random reward</li><li>VIP Spin doubles the reward</li><li>Another Spin can land</li><li>Screenshot your result to claim it</li><li>Redeem your prize within 5 days</li></ul></div>
+    <div class="card"><h2>How it works</h2><ul class="rules"><li>Every spin wins a random reward</li><li>VIP doubles time-based prizes and upgrades coupons up to 30% OFF</li><li>Bonus Regular Spin always counts as a Regular Spin</li><li>Voice Recording is not included in 30 Minutes With Me</li><li>Screenshot your result and redeem it within 5 days</li></ul></div>
   </section>
   <section class="panel">
     <div class="wheel-wrap"><div class="pointer"></div><canvas id="wheel" width="800" height="800"></canvas><div class="hub">Sleepy<br>Tee ♡</div></div>
@@ -53,25 +53,39 @@
   <dialog id="popup"><h2>You won! ♡</h2><div class="win" id="won"></div><p id="note">Screenshot this result to claim your prize.</p><button id="close">Close</button></dialog>
   <script>
     const prizes=[
-      {title:['Voice','Recording'],sub:'20 seconds',icon:'🎙️',weight:6},
-      {title:['Mini','Game'],sub:'15 minutes',icon:'🎮',weight:16},
-      {title:['Mini','Watch'],sub:'15 minutes',icon:'🎬',weight:16},
-      {title:['10%','Off'],sub:'Any service',icon:'♡',weight:16},
-      {title:['Any','Service'],sub:'30 minutes',icon:'♛',weight:4},
-      {title:['Mini','Chat'],sub:'15 minutes',icon:'💬',weight:16},
-      {title:['20%','Coupon'],sub:'',icon:'✦',weight:10},
-      {title:['Another','Spin'],sub:'',icon:'↻',weight:16,respin:true}
+      {title:['5%','OFF'],sub:'Coupon',icon:'♡',weight:13,type:'coupon',value:5},
+      {title:['Mini','Chat'],sub:'15 minutes',icon:'💬',weight:10,type:'minutes',value:15,name:'Mini Chat'},
+      {title:['Mini','Game'],sub:'15 minutes',icon:'🎮',weight:10,type:'minutes',value:15,name:'Mini Game'},
+      {title:['Mini','Watch'],sub:'15 minutes',icon:'🎬',weight:10,type:'minutes',value:15,name:'Mini Watch'},
+      {title:['10%','OFF'],sub:'Coupon',icon:'✦',weight:12,type:'coupon',value:10},
+      {title:['Try','Again'],sub:'',icon:'↻',weight:12,type:'retry',respin:true},
+      {title:['+5 Bonus','Minutes'],sub:'Add-on only',icon:'⏱️',weight:7,type:'bonusMinutes',value:5},
+      {title:['Bonus','Regular','Spin'],sub:'',icon:'🎟️',weight:7,type:'bonusSpin'},
+      {title:['+15 Bonus','Minutes'],sub:'Add-on only',icon:'⌛',weight:6,type:'bonusMinutes',value:15},
+      {title:['20%','OFF'],sub:'Coupon',icon:'★',weight:5,type:'coupon',value:20},
+      {title:['Voice','Recording'],sub:'20 seconds',icon:'🎙️',weight:4,type:'voice',value:20},
+      {title:['30 Minutes','With Me'],sub:'Any service',icon:'♛',weight:4,type:'withMe',value:30}
     ];
-    const colors=['#23132f','#724190','#160d20','#9b66ba','#2e183d','#674078','#1b1024','#8756a4'];
+    const colors=['#2a1737','#8651a5','#1a0e24','#71408b','#32183f','#945eb2','#22122e','#7b4795','#2c1539','#8d58aa','#190d22','#68407d'];
     const canvas=document.querySelector('#wheel'),ctx=canvas.getContext('2d'),spinBtn=document.querySelector('#spin'),doubleBtn=document.querySelector('#double'),statusEl=document.querySelector('#status'),historyEl=document.querySelector('#history'),popup=document.querySelector('#popup'),won=document.querySelector('#won'),note=document.querySelector('#note');
-    let rotation=0,spinning=false,lastWasRespin=false,audioCtx;
-    function draw(){const c=400,r=382,s=Math.PI*2/prizes.length;ctx.clearRect(0,0,800,800);prizes.forEach((p,i)=>{const a=-Math.PI/2+i*s;ctx.beginPath();ctx.moveTo(c,c);ctx.arc(c,c,r,a,a+s);ctx.closePath();ctx.fillStyle=colors[i];ctx.fill();ctx.strokeStyle='#c99aeb';ctx.lineWidth=4;ctx.stroke();ctx.save();ctx.translate(c,c);ctx.rotate(a+s/2+Math.PI/2);ctx.textAlign='center';ctx.textBaseline='middle';ctx.shadowColor='#000';ctx.shadowBlur=7;const y=-232;ctx.fillStyle='rgba(238,216,255,.16)';ctx.strokeStyle='rgba(238,216,255,.25)';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(-31,y-78,62,62,17);ctx.fill();ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle='#fff';ctx.font='30px "Segoe UI Emoji",Arial';ctx.fillText(p.icon,0,y-47);ctx.shadowColor='#000';ctx.shadowBlur=7;ctx.fillStyle='#fff8ff';ctx.font='bold 19px Arial';const titleStart=y+25-(p.title.length-1)*10.5;p.title.forEach((line,n)=>ctx.fillText(line.toUpperCase(),0,titleStart+n*21));if(p.sub){ctx.fillStyle='#dfc9ea';ctx.font='14px Arial';ctx.fillText(p.sub,0,y+75)}ctx.restore()});ctx.beginPath();ctx.arc(c,c,r,0,Math.PI*2);ctx.strokeStyle='#ecd3ff';ctx.lineWidth=10;ctx.stroke()}
+    let rotation=0,spinning=false,lastWasRespin=false,pendingSpinMode=null,audioCtx;
+    function draw(){const c=400,r=382,s=Math.PI*2/prizes.length;ctx.clearRect(0,0,800,800);prizes.forEach((p,i)=>{const a=-Math.PI/2+i*s;ctx.beginPath();ctx.moveTo(c,c);ctx.arc(c,c,r,a,a+s);ctx.closePath();ctx.fillStyle=colors[i];ctx.fill();ctx.strokeStyle='#c99aeb';ctx.lineWidth=3;ctx.stroke();ctx.save();ctx.translate(c,c);ctx.rotate(a+s/2+Math.PI/2);ctx.textAlign='center';ctx.textBaseline='middle';ctx.shadowColor='#000';ctx.shadowBlur=7;const y=-245;ctx.fillStyle='rgba(238,216,255,.16)';ctx.strokeStyle='rgba(238,216,255,.25)';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(-27,y-66,54,54,15);ctx.fill();ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle='#fff';ctx.font='25px "Segoe UI Emoji",Arial';ctx.fillText(p.icon,0,y-39);ctx.shadowColor='#000';ctx.shadowBlur=7;ctx.fillStyle='#fff8ff';ctx.font='bold 14px Arial';const titleStart=y+20-(p.title.length-1)*8;p.title.forEach((line,n)=>ctx.fillText(line.toUpperCase(),0,titleStart+n*16));if(p.sub){ctx.fillStyle='#dfc9ea';ctx.font='11px Arial';ctx.fillText(p.sub,0,y+68)}ctx.restore()});ctx.beginPath();ctx.arc(c,c,r,0,Math.PI*2);ctx.strokeStyle='#ecd3ff';ctx.lineWidth=10;ctx.stroke()}
     function choose(){let pool=prizes.map((p,i)=>({p,i})).filter(x=>!(lastWasRespin&&x.p.respin));const total=pool.reduce((n,x)=>n+x.p.weight,0);let roll=Math.random()*total;for(const x of pool){roll-=x.p.weight;if(roll<0)return x.i}return pool.at(-1).i}
     function tone(freq,dur=.08,vol=.035){try{audioCtx??=new(window.AudioContext||window.webkitAudioContext)();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=freq;o.type='triangle';g.gain.setValueAtTime(vol,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+dur);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+dur)}catch(e){}}
     function record(label){const arr=JSON.parse(localStorage.getItem('teeWheelHistory')||'[]');arr.unshift(`${new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})} — ${label}`);localStorage.setItem('teeWheelHistory',JSON.stringify(arr.slice(0,8)));showHistory()}
     function showHistory(){historyEl.innerHTML=(JSON.parse(localStorage.getItem('teeWheelHistory')||'[]')).map(x=>`<div>${x}</div>`).join('')}
-    function run(isDouble=false){if(spinning)return;spinning=true;spinBtn.disabled=doubleBtn.disabled=true;statusEl.textContent='The wheel is choosing... ♡';const winner=choose(),slice=360/prizes.length,target=(360-(winner+.5)*slice)%360,current=((rotation%360)+360)%360,adjust=(target-current+360)%360;rotation+=2160+adjust;canvas.style.transform=`rotate(${rotation}deg)`;tone(430,.2,.025);setTimeout(()=>{const p=prizes[winner],label=`${p.title.join(' ')}${p.sub?' — '+p.sub:''}${isDouble&&!p.respin?' ×2':''}`;lastWasRespin=!!p.respin;won.textContent=label;note.textContent=p.respin?'You landed on Another Spin. Spin again!':'Screenshot this result to claim your prize.';statusEl.textContent=`You won: ${label} ♡`;record(label);tone(p.respin?540:820,.35,.04);popup.showModal();spinning=false;spinBtn.disabled=doubleBtn.disabled=false},8050)}
-    spinBtn.onclick=()=>run(false);doubleBtn.onclick=()=>run(true);document.querySelector('#close').onclick=()=>popup.close();document.querySelector('#reset').onclick=()=>{if(spinning)return;rotation=0;lastWasRespin=false;canvas.style.transform='rotate(0deg)';localStorage.removeItem('teeWheelHistory');showHistory();statusEl.textContent='Every spin is a winner ♡'};
+    function resultFor(p,isVip){
+      if(p.type==='coupon'){const amount=isVip?Math.min(p.value*2,30):p.value;return {label:`${amount}% OFF Coupon`,note:isVip&&amount!==p.value?'VIP coupon upgraded — screenshot this result to claim it.':'Screenshot this result to claim your prize.'}}
+      if(p.type==='minutes'){const amount=isVip?p.value*2:p.value;return {label:`${p.name} — ${amount} minutes`,note:'Screenshot this result to claim your prize.'}}
+      if(p.type==='bonusMinutes'){const amount=isVip?p.value*2:p.value;return {label:`+${amount} Bonus Minutes`,note:'Add-on only. Must be added to an eligible service that was purchased, booked, or won.'}}
+      if(p.type==='voice'){const amount=isVip?p.value*2:p.value;return {label:`Voice Recording — ${amount} seconds`,note:'Wheel-exclusive prize. Not included in 30 Minutes With Me.'}}
+      if(p.type==='withMe'){const amount=isVip?p.value*2:p.value;return {label:`${amount} Minutes With Me — Any service`,note:'Voice Recording is not included in this prize.'}}
+      if(p.type==='retry')return {label:'Try Again',note:`Redo this ${isVip?'VIP':'Regular'} Spin!`}
+      return {label:'Bonus Regular Spin',note:'You won one additional Regular Spin.'}
+    }
+    function updateControls(){spinBtn.disabled=spinning||pendingSpinMode==='vip';doubleBtn.disabled=spinning||pendingSpinMode==='regular'}
+    function run(isVip=false){if(spinning||pendingSpinMode&&(pendingSpinMode==='vip')!==isVip)return;pendingSpinMode=null;spinning=true;updateControls();statusEl.textContent='The wheel is choosing... ♡';const winner=choose(),slice=360/prizes.length,target=(360-(winner+.5)*slice)%360,current=((rotation%360)+360)%360,adjust=(target-current+360)%360;rotation+=2160+adjust;canvas.style.transform=`rotate(${rotation}deg)`;tone(430,.2,.025);setTimeout(()=>{const p=prizes[winner],result=resultFor(p,isVip);lastWasRespin=p.type==='retry';if(p.type==='retry')pendingSpinMode=isVip?'vip':'regular';if(p.type==='bonusSpin')pendingSpinMode='regular';won.textContent=result.label;note.textContent=result.note;statusEl.textContent=`You won: ${result.label} ♡`;record(result.label);tone(p.type==='retry'?540:820,.35,.04);popup.showModal();spinning=false;updateControls()},8050)}
+    spinBtn.onclick=()=>run(false);doubleBtn.onclick=()=>run(true);document.querySelector('#close').onclick=()=>popup.close();document.querySelector('#reset').onclick=()=>{if(spinning)return;rotation=0;lastWasRespin=false;pendingSpinMode=null;canvas.style.transform='rotate(0deg)';localStorage.removeItem('teeWheelHistory');showHistory();statusEl.textContent='Every spin is a winner ♡';updateControls()};
     function addFlowers(){const layer=document.querySelector('#flowers');for(let i=0;i<10;i++){const sparkle=document.createElement('span');sparkle.className='falling-sparkle';sparkle.textContent='✦';sparkle.style.left=Math.random()*100+'vw';sparkle.style.fontSize=10+Math.random()*12+'px';sparkle.style.animationDuration=9+Math.random()*10+'s';sparkle.style.animationDelay=-Math.random()*18+'s';sparkle.style.setProperty('--drift',(Math.random()*110-55)+'px');layer.appendChild(sparkle)}}
     function addCustomCursor(){if(!matchMedia('(pointer:fine)').matches)return;const sparkle=document.querySelector('#customCursor');document.addEventListener('mousemove',e=>{sparkle.style.left=e.clientX+'px';sparkle.style.top=e.clientY+'px'})}
     draw();showHistory();addFlowers();addCustomCursor();
